@@ -1,0 +1,48 @@
+name: Cypress Tests
+
+on: push
+
+jobs:
+  cypress-run:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
+      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
+      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
+      - name: Checkout
+        uses: actions/checkout@v4
+      # Install npm dependencies, cache them correctly
+      # and run all Cypress tests
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+      - name: Install dependencies
+        run: npm install
+      - run: npm install @badeball/cypress-cucumber-preprocessor
+      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
+      - name: Debug secrets
+        run: |
+          echo "Login URL: ${{ secrets.LOGIN != '' && '****' || 'NOT SET' }}"
+          echo "Dev environment: ${{ secrets.DEV_ENV != '' && '****' || 'NOT SET' }}"
+          echo "Username: ${{ secrets.ADMIN_USERNAME != '' && '****' || 'NOT SET' }}"
+          echo "Password: ${{ secrets.ADMIN_PASSWORD != '' && '****' || 'NOT SET' }}"
+      - name: Create cypress.env.json
+        run: |
+          jq -n \
+            --arg dev_env "${{ secrets.DEV_ENV}}" \
+            --arg login "${{ secrets.LOGIN }}" \
+            --arg returnurl "${{ secrets.RETURN_URL }}" \
+            --arg username "${{ secrets.ADMIN_USERNAME }}" \
+            --arg password "${{ secrets.ADMIN_PASSWORD }}" \
+            '{
+              DEV_ENV: $dev_env,
+              LOGIN: $login,
+              RETURN_URL: $returnurl,
+              ADMIN_USERNAME: $username,
+              ADMIN_PASSWORD: $password
+            }' > cypress.env.json
+      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
+      - name: Cypress run
+        uses: cypress-io/github-action@v6
+        with:
+          browser: chrome
+          spec: "**/*.feature"  # Target all feature files
